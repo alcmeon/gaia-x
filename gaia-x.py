@@ -72,7 +72,7 @@ def generate_suggestion(company_id, webhook_token, question, context, id):
         payload = {
             "suggest_answer": suggest_answer
         }
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(api_url, json=payload, headers=headers)
         print(f"Respose '{response.text}' to post/{payload}")
 
     except Exception as e:

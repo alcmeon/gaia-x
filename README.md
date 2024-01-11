@@ -29,8 +29,9 @@ The public key for your web hook
 "
 API_SECRET=" the secret of the application with AI permission "
 ```
+You can also add a **API_URL** if you want to change the default value of **https://api.alcmeon.com/ai/suggest-answer**
 
-Then run the gaia-x.py
+Then run the gaia-x server with:
 ```
 source .venv/bin/activate
 python gaia-x.py
