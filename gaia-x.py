@@ -102,6 +102,7 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
 
 
 class SuggestRequest(BaseModel):
+    version: str
     question: str
     context: List[dict[str, str]] | None = None
     webhook_token: str
