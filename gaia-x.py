@@ -53,7 +53,6 @@ def generate_answer(question, context):
             {"role": "user", "content": question}
         ]
     )
-
     return completion.choices[0].message.content
 
 def generate_suggestion(company_id:str, webhook_token:str, question:str, context:list, id:int):
@@ -61,21 +60,36 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
     try:
         print(f"Thread {webhook_token}: starting with {question}")
         created_at = datetime.now()
-        message= generate_answer(question, context)
+        error = None
+        message = None
+        try:
+            message= generate_answer(question, context)
+            print(message)
+        except Exception as e:
+            error=str(e)
+            print(error)
         finished_at = datetime.now()
-        print(message)
         headers = {
             "content-type": "application/json",
             "X-JWT": webhook_token,
             "Authorization": basic_auth(str(company_id), secret),
         }
-        suggest_answer = {
-                "id": id,
-                "answer": message,
-                "status": 'finished',
-                "created_at": created_at.isoformat(),
-                "finished_at": finished_at.isoformat(),
-            }
+        if error:
+            suggest_answer = {
+                    "id": id,
+                    "error": error,
+                    "status": 'finished',
+                    "created_at": created_at.isoformat(),
+                    "finished_at": finished_at.isoformat(),
+                }
+        else:
+            suggest_answer = {
+                    "id": id,
+                    "answer": message,
+                    "status": 'failed',
+                    "created_at": created_at.isoformat(),
+                    "finished_at": finished_at.isoformat(),
+                }
         payload = {
             "suggest_answer": suggest_answer
         }
