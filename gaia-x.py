@@ -40,10 +40,10 @@ def generate_answer(question, context):
         role = item.get('role')
         content = item.get('content')
         if content:
-            if role in ['agent', 'bot']:
-                messages.append({"role": 'assistant', "content": str})
+            if role in ['adviser', 'bot']:
+                messages.append({"role": 'assistant', "content": content})
             if role in ['user']:
-                messages.append({"role": 'user', "content": str})
+                messages.append({"role": 'user', "content": content})
     messages.append({"role": "user", "content": question})
     print(messages)
     completion = client.chat.completions.create(
