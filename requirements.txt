@@ -1,0 +1,6 @@
+pyjwt[crypto]
+fastapi
+openai
+uvicorn[standard]
+requests
+python-dotenv
