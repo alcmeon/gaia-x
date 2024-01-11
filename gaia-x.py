@@ -78,7 +78,7 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
             suggest_answer = {
                     "id": id,
                     "error": error,
-                    "status": 'finished',
+                    "status": 'failed',
                     "created_at": created_at.isoformat(),
                     "finished_at": finished_at.isoformat(),
                 }
@@ -86,7 +86,7 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
             suggest_answer = {
                     "id": id,
                     "answer": message,
-                    "status": 'failed',
+                    "status": 'finished',
                     "created_at": created_at.isoformat(),
                     "finished_at": finished_at.isoformat(),
                 }
