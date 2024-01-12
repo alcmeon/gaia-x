@@ -31,22 +31,32 @@ def basic_auth(username, password):
     return f"Basic {token}"
 
 def generate_answer(question, context):
+
     messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
     ]
     # Build messages collection using the context
     # role 'agent' and 'bot' are considered as assistant input, role 'user' is user, role 'system' is ignored
+    adviser_lang = None
+    adviser_user_name = None
     for item in context:
-        role = item.get('role')
-        content = item.get('content')
-        if content:
-            if role in ['adviser', 'bot']:
-                messages.append({"role": 'assistant', "content": content})
-            if role in ['user']:
-                messages.append({"role": 'user', "content": content})
+        content = item.content
+        if item.role in ['adviser', 'bot'] and content:
+            messages.append({"role": 'assistant', "content": content})
+        elif item.role in ['user']  and content:
+            messages.append({"role": 'user', "content": content})
+        elif item.role in ['system']:
+            if content.startswith('adviser_user_name='):
+                adviser_user_name = content[len('adviser_user_name='):]
+            if content.startswith('adviser_lang='):
+                adviser_lang = content[len('adviser_lang='):]
     messages.append({"role": "user", "content": question})
-    print(messages)
+    if adviser_user_name:
+        messages.insert(0, {"role": "system", "content": f"You are {adviser_user_name}, a helpfull assistant."})
+    else:
+        messages.insert(0, {"role": "system", "content": "You are a helpful assistant."})
+
     completion = client.chat.completions.create(
+        temperature=0,
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
@@ -100,11 +110,15 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
         print(e)
 
 
+class ContextItem(BaseModel):
+    role: str
+    content: str
+    date: datetime | None = None
 
 class SuggestRequest(BaseModel):
     version: str
     question: str
-    context: List[dict[str, str| int | float | bool]] | None = None
+    context: List[ContextItem] | None = None
     webhook_token: str
 
 def check_authorization(authorization: str):
