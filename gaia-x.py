@@ -11,7 +11,7 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Response, Header, status
 from typing import List, Annotated
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from random import randint
 from openai import OpenAI
@@ -121,6 +121,17 @@ class SuggestRequest(BaseModel):
     context: List[ContextItem] | None = None
     webhook_token: str
 
+class SuggestStats(BaseModel):
+    version: str
+    question: str
+    context: List[ContextItem] | None = None
+    suggestion: str
+    suggestion_id: int | None  = Field(alias="suggestion-id")
+    status: str
+    answer: str | None = None
+    class Config:
+        allow_population_by_field_name = True
+
 def check_authorization(authorization: str):
     if authorization is None :
         raise Exception("No authorization")
@@ -143,7 +154,6 @@ def check_authorization(authorization: str):
     return token_company_id
 
 app = FastAPI()
-
 
 @app.post("/suggest-answer")
 def suggest_answer(
@@ -176,6 +186,24 @@ def suggest_answer(
             "message": str(e)
         }
 
+
+@app.post("/suggest-stats")
+def suggest_stats(
+    suggest_stats: SuggestStats,
+    response: Response,
+    authorization: Annotated[str | None, Header()] = None
+):
+    try:
+        company_id = check_authorization(authorization)
+        print(f"{company_id}, question='{suggest_stats.question}', suggestion='{suggest_stats.suggestion}', status={suggest_stats.status}, answer='{suggest_stats.answer}'")
+        return "ok"
+    
+    except Exception as e:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {
+            "detail": {},
+            "message": str(e)
+        }
 
 if __name__ == "__main__":
     logging.info("Start Chat")
