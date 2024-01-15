@@ -126,11 +126,9 @@ class SuggestStats(BaseModel):
     question: str
     context: List[ContextItem] | None = None
     suggestion: str
-    suggestion_id: int | None  = Field(alias="suggestion-id")
+    suggestion_id: int | None
     status: str
     answer: str | None = None
-    class Config:
-        allow_population_by_field_name = True
 
 def check_authorization(authorization: str):
     if authorization is None :
@@ -195,7 +193,7 @@ def suggest_stats(
 ):
     try:
         company_id = check_authorization(authorization)
-        print(f"{company_id}, question='{suggest_stats.question}', suggestion='{suggest_stats.suggestion}', status={suggest_stats.status}, answer='{suggest_stats.answer}'")
+        print(f"{company_id}, question='{suggest_stats.question}', suggestion[{suggest_stats.suggestion_id}]='{suggest_stats.suggestion}', status={suggest_stats.status}, answer='{suggest_stats.answer}'")
         return "ok"
     
     except Exception as e:
