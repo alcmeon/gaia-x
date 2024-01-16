@@ -126,7 +126,7 @@ class SuggestStats(BaseModel):
     question: str
     context: List[ContextItem] | None = None
     suggestion: str
-    suggestion_id: int | None
+    suggestion_id: str | None
     status: str
     answer: str | None = None
 
@@ -161,7 +161,7 @@ def suggest_answer(
 ):
     try:
         company_id = check_authorization(authorization)
-        suggest_id = randint(0,1000000)
+        suggest_id = str(randint(0,1000000))
         x = threading.Thread(
             target=generate_suggestion,
             args=(
