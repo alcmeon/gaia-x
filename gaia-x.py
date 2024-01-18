@@ -23,6 +23,7 @@ public_key = os.getenv("PUBLIC_KEY", None)
 api_url = os.getenv("API_URL", "https://api.alcmeon.com/ai/suggest-answer")
 secret = os.getenv("API_SECRET", None)
 client = OpenAI()
+use_context = os.getenv("USE_CONTEXT", False)
 
 def basic_auth(username, password):
     token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
@@ -30,13 +31,12 @@ def basic_auth(username, password):
     )
     return f"Basic {token}"
 
-def generate_answer(question, context):
 
+def build_messages_from_context(context):
     messages=[
     ]
     # Build messages collection using the context
     # role 'agent' and 'bot' are considered as assistant input, role 'user' is user, role 'system' is ignored
-    adviser_lang = None
     adviser_user_name = None
     for item in context:
         content = item.content
@@ -47,21 +47,27 @@ def generate_answer(question, context):
         elif item.role in ['system']:
             if content.startswith('adviser_user_name='):
                 adviser_user_name = content[len('adviser_user_name='):]
-            if content.startswith('adviser_lang='):
-                adviser_lang = content[len('adviser_lang='):]
-    messages.append({"role": "user", "content": question})
+    system_content =  "You are a helpful assistant."
     if adviser_user_name:
-        messages.insert(0, {"role": "system", "content": f"You are {adviser_user_name}, a helpfull assistant."})
-    else:
-        messages.insert(0, {"role": "system", "content": "You are a helpful assistant."})
+        system_content += f" Your name is {adviser_user_name}"
+    messages.insert(0, {"role": "system", "content": system_content})
+        
+    return messages
+    
+def generate_answer(question, context):
 
-    completion = client.chat.completions.create(
-        temperature=0,
-        model="gpt-3.5-turbo",
+    if use_context:
+        messages = build_messages_from_context(context)
+    else:
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": question}
         ]
+    print(messages)
+    completion = client.chat.completions.create(
+        temperature=0,
+        model="gpt-3.5-turbo",
+        messages=messages
     )
     return completion.choices[0].message.content
 
