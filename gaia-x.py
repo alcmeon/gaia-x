@@ -21,7 +21,10 @@ logging.basicConfig(level=logging.DEBUG)
 load_dotenv(override=True)
 public_key = os.getenv("PUBLIC_KEY", None)
 api_url = os.getenv("API_URL", "https://api.alcmeon.com/ai/suggest-answer")
+api_bot_url = os.getenv("API_BOT_URL", "https://api.alcmeon.com/ai/answer")
 secret = os.getenv("API_SECRET", None)
+default_company_id = os.getenv("COMPANY_ID", None)
+bot_secret = os.getenv("BOT_API_KEY", None)
 client = OpenAI()
 use_context = os.getenv("USE_CONTEXT", False)
 
@@ -56,7 +59,7 @@ def build_messages_from_context(context):
     
 def generate_answer(question, context):
 
-    if use_context:
+    if use_context and isinstance(context, list):
         messages = build_messages_from_context(context)
     else:
         messages=[
@@ -115,6 +118,66 @@ def generate_suggestion(company_id:str, webhook_token:str, question:str, context
     except Exception as e:
         print(e)
 
+SUGGEST_TRANSFER_TO_AGENT = 'suggestContactEscalation'
+MUST_TRANSFER_TO_AGENT = 'mustContactEscalation'
+INVALID_SCOPE_TO_ANSWER = 'EndConversation'
+
+def compute_code(question, answer):
+    """ Compute code according to question and answer. As a sample we generate random answer """
+    print(f"question={question}\nanswer={answer}")
+    r = randint(0, 3)
+    return [None, SUGGEST_TRANSFER_TO_AGENT, MUST_TRANSFER_TO_AGENT, INVALID_SCOPE_TO_ANSWER][r]
+
+
+def generate_bot_answer(company_id:str, jwt:str, query:str, context:str):
+    import requests
+    try:
+        print(f"Thread {jwt}: starting with {query}")
+        error = None
+        message = None
+        code = None
+        try:
+            message= generate_answer(query, context)
+            code = compute_code(query, message)
+            print(message)
+        except Exception as e:
+            error=str(e)
+            print(error)
+        headers = {
+            "content-type": "application/json",
+            "X-JWT": jwt,
+            "Authorization": basic_auth(str(company_id), secret),
+        }
+        message_payload = None
+        error_payload = None
+        if error:
+            # If an error occurs, we send error messages for debugging purpose, and ask that conversation is transfered to an agent
+            error_payload = {
+                    "code": "responseGenerationError",
+                    "details": error,
+                }
+            message_payload = {
+                    "id": "",
+                    "content": "",
+                    "code": "mustContactEscalation",
+                }
+        else:
+            # Send message directly to user
+            message_payload = {
+                    "id": str(randint(0,1000000)),
+                    "content": message,
+                    "code": code,
+                }
+        payload = {
+            "message": message_payload,
+            "error": error_payload,
+        }
+        response = requests.post(api_bot_url, json=payload, headers=headers)
+        print(f"Response '{response.text}' to post/{payload}")
+
+    except Exception as e:
+        print(e)
+
 
 class ContextItem(BaseModel):
     role: str
@@ -136,6 +199,11 @@ class SuggestStats(BaseModel):
     status: str
     answer: str | None = None
 
+class BotRequest(BaseModel):
+    query: str
+    context: str | None = None
+    jwt: str
+
 def check_authorization(authorization: str):
     if authorization is None :
         raise Exception("No authorization")
@@ -153,9 +221,14 @@ def check_authorization(authorization: str):
         raise Exception("Invalid token")
 
     token_company_id = data.get('company_id')
-    if token_company_id is None:
+    if token_company_id is None or token_company_id != default_company_id:
         raise Exception("Invalid company_id")
     return token_company_id
+
+def check_api_key(api_key: str):
+    if bot_secret != api_key:
+        raise Exception("Invalid token")
+    return default_company_id
 
 app = FastAPI()
 
@@ -208,6 +281,36 @@ def suggest_stats(
             "detail": {},
             "message": str(e)
         }
+
+
+@app.post("/bot/")
+def handle_bot(
+    bot_request: BotRequest,
+    response: Response,
+    apiKey: Annotated[str | None, Header()] = None
+):
+    try:
+        company_id = check_api_key(apiKey)
+        x = threading.Thread(
+            target=generate_bot_answer,
+            args=(
+                company_id,
+                bot_request.jwt,
+                bot_request.query,
+                bot_request.context,
+            ),
+        )
+        x.start()
+        return {
+            "status": 'Acknowledged',
+        }
+    except Exception as e:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {
+            "errorId": 401,
+            "errorDescription": str(e)
+        }
+    
 
 if __name__ == "__main__":
     logging.info("Start Chat")
