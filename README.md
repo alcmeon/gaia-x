@@ -22,12 +22,14 @@ Create a .env file at the root of the project
 
 ```
 OPENAI_API_KEY=" your openai key  "
+COMPANY_ID="Your company id" 
+API_SECRET=" the secret of the application with AI permission "
 PUBLIC_KEY="
 -----BEGIN PUBLIC KEY-----
 The public key for your web hook
 -----END PUBLIC KEY-----
 "
-API_SECRET=" the secret of the application with AI permission "
+BOT_API_KEY="The api key for the bot"
 ```
 You can also add a **API_URL** if you want to change the default value of **https://api.alcmeon.com/ai/suggest-answer**
 
