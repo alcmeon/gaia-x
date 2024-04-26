@@ -214,7 +214,8 @@ def check_authorization(authorization: str):
     token = authorization[7:]
 
     try:
-        data = jwt.decode(jwt=token, key=public_key, algorithms=["RS256"])
+        # add 10 s time margin to accomodate timing difference between servers.
+        data = jwt.decode(jwt=token, key=public_key, leeway=10, algorithms=["RS256"])
     except jwt.exceptions.ExpiredSignatureError:
         raise Exception("Expired token")
     except Exception:
